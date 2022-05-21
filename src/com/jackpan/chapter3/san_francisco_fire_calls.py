@@ -113,4 +113,18 @@ fire_ts_df = (new_fire_df
  .select(F.sum("NumAlarms"), F.avg("ResponseDelayedinMins"), F.min("ResponseDelayedinMins"), F.max("ResponseDelayedinMins"))
  .show())
 
-# 2018年的消防警报有哪些类型
+# What zip codes accounted for most common calls
+(fire_ts_df
+ .select("CallType", "ZipCode")
+ .where(col("CallType").isNotNull())
+ .groupBy("CallType", "ZipCode")
+ .count()
+ .orderBy("count", ascending=False)
+ .show(10, truncate=False))
+
+(fire_ts_df
+ .select("Neighborhood", "ZipCode")
+ .where((col("ZipCode") == 940102) | (col("ZipCode") == 94103)).distinct().show(10, truncate=False))
+
+(fire_ts_df
+ .filter(year("IncidentDate") == 2018).groupBy(weekofyear("IncidentDate")).count().orderBy("count", ascending=False).show())
