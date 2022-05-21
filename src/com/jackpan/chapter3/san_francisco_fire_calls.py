@@ -1,5 +1,6 @@
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
+import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from IPython.display import display
 
@@ -70,3 +71,46 @@ few_fire_df.show(5, truncate=False)
  .where(col("CallType").isNotNull())
  .distinct()
  .show(10, False))
+
+# 响应时间超过5分钟的延迟情况
+new_fire_df = fire_df.withColumnRenamed("Delay", "ResponseDelayedinMins")
+(new_fire_df
+ .select("ResponseDelayedinMins")
+ .where(col("ResponseDelayedinMins") > 5)
+ .show(5, False))
+
+# 转换时间
+fire_ts_df = (new_fire_df
+              .withColumn("IncidentDate", to_timestamp(col("CallDate"), "MM/dd/yyyy"))
+              .drop("CallDate")
+              .withColumn("OnWatchDate", to_timestamp(col("WatchDate"), "MM/dd/yyyy"))
+              .drop("WatchDate")
+              .withColumn("AvailableDtTS", to_timestamp(col("AvailableDtTm"), "MM/dd/yyyy hh:mm:ss a"))
+              .drop("AvailableDtTm"))
+
+(fire_ts_df
+ .select("IncidentDate", "OnWatchDate", "AvailableDtTS")
+ .show(5, False))
+
+# 查看都有哪些年份的报警记录
+(fire_ts_df
+ .select(year("IncidentDate"))
+ .distinct()
+ .orderBy(year("IncidentDate"))
+ .show())
+
+# 最常见的消防报警类型是什么
+(fire_ts_df
+ .select("CallType")
+ .where(col("CallType").isNotNull())
+ .groupBy("CallType")
+ .count()
+ .orderBy("count", ascending=False)
+ .show(n=10, truncate=False))
+
+# 警报中的总数，平均响应时间，最短响应时间和最长响应时间
+(fire_ts_df
+ .select(F.sum("NumAlarms"), F.avg("ResponseDelayedinMins"), F.min("ResponseDelayedinMins"), F.max("ResponseDelayedinMins"))
+ .show())
+
+# 2018年的消防警报有哪些类型
