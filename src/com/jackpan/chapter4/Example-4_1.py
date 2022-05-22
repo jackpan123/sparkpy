@@ -33,19 +33,19 @@ spark.sql("SELECT distance, origin, destination FROM us_delay_flights_tbl WHERE 
 # 等价的DataFrame API
 df.select("distance", "origin", "destination").filter(col("distance") > 1000).orderBy(desc("distance")).show(10)
 
-# 查找旧金山（SFO机场）和芝加哥（ORD机场）间所有延误超过两小时的航班
-# spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl "
-#           "WHERE delay > 120 AND origin == 'SFO' AND destination == 'ORD' ORDER BY delay DESC").show(10)
-#
-# # 转换不同的表达方式
-# spark.sql("""SELECT delay, origin, destination,
-#               CASE
-#                   WHEN delay > 360 THEN 'Very Long Delays'
-#                   WHEN delay > 120 AND delay < 360 THEN  'Long Delays '
-#                   WHEN delay > 60 AND delay < 120 THEN  'Short Delays'
-#                   WHEN delay > 0 and delay < 60  THEN   'Tolerable Delays'
-#                   WHEN delay = 0 THEN 'No Delays'
-#                   ELSE 'No Delays'
-#                END AS Flight_Delays
-#                FROM us_delay_flights_tbl
-#                ORDER BY origin, delay DESC""").show(10, truncate=False)
+#查找旧金山（SFO机场）和芝加哥（ORD机场）间所有延误超过两小时的航班
+spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl "
+          "WHERE delay > 120 AND origin == 'SFO' AND destination == 'ORD' ORDER BY delay DESC").show(10)
+
+# 转换不同的表达方式
+spark.sql("""SELECT delay, origin, destination,
+              CASE
+                  WHEN delay > 360 THEN 'Very Long Delays'
+                  WHEN delay > 120 AND delay < 360 THEN  'Long Delays '
+                  WHEN delay > 60 AND delay < 120 THEN  'Short Delays'
+                  WHEN delay > 0 and delay < 60  THEN   'Tolerable Delays'
+                  WHEN delay = 0 THEN 'No Delays'
+                  ELSE 'No Delays'
+               END AS Flight_Delays
+               FROM us_delay_flights_tbl
+               ORDER BY origin, delay DESC""").show(10, truncate=False)
