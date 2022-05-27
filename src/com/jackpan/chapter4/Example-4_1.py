@@ -21,31 +21,54 @@ csv_file = "/Users/jackpan/PycharmProjects/sparkpy/data/departuredelays.csv"
 df = (spark.read.format("csv")
       .schema("date STRING, delay INT, distance INT, origin STRING, destination STRING")
       .option("header", "true")
-      .load(csv_file))
+      .option("path", csv_file)
+      .load())
+
+df.show()
 df.selectExpr("to_date_format_udf(date) as date_format").show(10, truncate=False)
 df.createOrReplaceTempView("us_delay_flights_tbl")
 
-# spark.sql("CACHE TABLE us_delay_flights_tbl")
+spark.sql("CACHE TABLE us_delay_flights_tbl")
 # spark.sql("SELECT *, date, to_date_format_udf(date) AS date_fm FROM us_delay_flights_tbl").show(10, truncate=False)
+# spark.sql("SELECT COUNT(*) FROM us_delay_flights_tbl").show()
+#
+# # 查找所有所有航班超出1000英里的航班
+# spark.sql("SELECT distance, origin, destination FROM us_delay_flights_tbl WHERE distance > 1000 ORDER BY distance DESC").show(10)
+# # 等价的DataFrame API
+# df.select("distance", "origin", "destination").filter(col("distance") > 1000).orderBy(desc("distance")).show(10, truncate=False)
+# df.select("distance", "origin", "destination").where("distance > 1000").orderBy("distance", ascending=False).show(10)
+# df.select("distance", "origin", "destination").where("distance > 1000").orderBy(desc("distance")).show(10)
+#
+#
+# #查找旧金山（SFO机场）和芝加哥（ORD机场）间所有延误超过两小时的航班
+# spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl "
+#           "WHERE delay > 120 AND origin == 'SFO' AND destination == 'ORD' ORDER BY delay DESC").show(10)
+#
+# # 判断数据源，转换不同的表达方式
+# spark.sql("""SELECT delay, origin, destination,
+#               CASE
+#                   WHEN delay > 360 THEN 'Very Long Delays'
+#                   WHEN delay > 120 AND delay < 360 THEN  'Long Delays '
+#                   WHEN delay > 60 AND delay < 120 THEN  'Short Delays'
+#                   WHEN delay > 0 and delay < 60  THEN   'Tolerable Delays'
+#                   WHEN delay = 0 THEN 'No Delays'
+#                   ELSE 'No Delays'
+#                END AS Flight_Delays
+#                FROM us_delay_flights_tbl
+#                ORDER BY origin, delay DESC""").show(10, truncate=False)
 
-# 查找所有所有航班超出1000英里的航班
-spark.sql("SELECT distance, origin, destination FROM us_delay_flights_tbl WHERE distance > 1000 ORDER BY distance DESC").show(10)
-# 等价的DataFrame API
-df.select("distance", "origin", "destination").filter(col("distance") > 1000).orderBy(desc("distance")).show(10)
 
-#查找旧金山（SFO机场）和芝加哥（ORD机场）间所有延误超过两小时的航班
-spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl "
-          "WHERE delay > 120 AND origin == 'SFO' AND destination == 'ORD' ORDER BY delay DESC").show(10)
+df1 = spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl WHERE origin = 'SFO'")
+df1.createGlobalTempView("us_origin_airport_SFO_tmp_view")
+spark.sql("SELECT * FROM global_temp.us_origin_airport_SFO_tmp_view").show(10)
 
-# 转换不同的表达方式
-spark.sql("""SELECT delay, origin, destination,
-              CASE
-                  WHEN delay > 360 THEN 'Very Long Delays'
-                  WHEN delay > 120 AND delay < 360 THEN  'Long Delays '
-                  WHEN delay > 60 AND delay < 120 THEN  'Short Delays'
-                  WHEN delay > 0 and delay < 60  THEN   'Tolerable Delays'
-                  WHEN delay = 0 THEN 'No Delays'
-                  ELSE 'No Delays'
-               END AS Flight_Delays
-               FROM us_delay_flights_tbl
-               ORDER BY origin, delay DESC""").show(10, truncate=False)
+# spark.sql("DROP VIEW IF EXISTS global_temp.us_origin_airport_SFO_tmp_view")
+#
+# df2 = spark.sql("SELECT date, delay, origin, destination FROM us_delay_flights_tbl WHERE origin = 'JFK'")
+# df2.createOrReplaceTempView("us_origin_airport_JFK_tmp_view")
+# spark.sql("SELECT * FROM us_origin_airport_JFK_tmp_view").show(10)
+#
+# spark.sql("DROP VIEW IF EXISTS us_origin_airport_JFK_tmp_view")
+
+spark.catalog.listTables(dbName="global_temp")
+
